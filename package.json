@@ -1,0 +1,15 @@
+{
+  "name": "n8n-bank-statement-verifier",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Hasan Gaffar",
+  "description": "n8n workflow API that checks whether a bank statement's accounts add up and where the faults are.",
+  "scripts": {
+    "samples": "node scripts/generate-samples.js",
+    "build": "node scripts/build-workflows.js",
+    "test": "node --test",
+    "verify": "node scripts/verify.js",
+    "e2e": "node scripts/e2e.js"
+  },
+  "engines": { "node": ">=22.2" }
+}

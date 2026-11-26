@@ -1,0 +1,16 @@
+# Personal or client statements: never commit
+private/
+
+# Local runtime files
+node_modules/
+.n8n/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Statements dropped in the project folder must never be committed
+/*.pdf
+/*.csv
+/*.xlsx

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  File    : docs/images/flow.svg
+  Author  : Hasan Gaffar
+  Project : n8n Bank Statement Verifier
+  Flow    : Receive Statement to Send Response, with the error paths
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1014" viewBox="0 0 900 1014" font-family="Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-label="Request flow of the Bank Statement Verifier">
+<defs><marker id="grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#5f6b7a"/></marker><marker id="red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#a1261b"/></marker></defs>
+<rect width="900" height="1014" fill="#ffffff"/>
+<text x="30" y="38" font-size="22" font-weight="700" fill="#111827">Bank Statement Verifier: request flow</text>
+<rect x="30" y="66" width="520" height="62" rx="10" fill="#e8f1ff" stroke="#2457a7" stroke-width="1.6"/><text x="46" y="92" font-size="17" font-weight="700" fill="#2457a7">1. Receive statement</text><text x="46" y="113" font-size="13.5" fill="#1f2933">POST /webhook/verify-statement  (file: CSV, XLSX or PDF)</text>
+<rect x="30" y="152" width="520" height="62" rx="10" fill="#e8f1ff" stroke="#2457a7" stroke-width="1.6"/><text x="46" y="178" font-size="17" font-weight="700" fill="#2457a7">2. Check the request</text><text x="46" y="199" font-size="13.5" fill="#1f2933">Create the audit table if missing, then validate the fields</text>
+<path d="M 290.0 128 L 290.0 150" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="238" width="520" height="62" rx="10" fill="#e8f1ff" stroke="#2457a7" stroke-width="1.6"/><text x="46" y="264" font-size="17" font-weight="700" fill="#2457a7">3. Fingerprint and read the file</text><text x="46" y="285" font-size="13.5" fill="#1f2933">SHA-256, then extract CSV, Excel or PDF text</text>
+<path d="M 290.0 214 L 290.0 236" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="324" width="520" height="62" rx="10" fill="#e8f1ff" stroke="#2457a7" stroke-width="1.6"/><text x="46" y="350" font-size="17" font-weight="700" fill="#2457a7">4. Parse transactions</text><text x="46" y="371" font-size="13.5" fill="#1f2933">One common format. A line that cannot be read is reported</text>
+<path d="M 290.0 300 L 290.0 322" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="410" width="520" height="62" rx="10" fill="#e6f6ec" stroke="#17663a" stroke-width="1.6"/><text x="46" y="436" font-size="17" font-weight="700" fill="#17663a">5. Check the arithmetic (core step)</text><text x="46" y="457" font-size="13.5" fill="#1f2933">Running balance, totals, faulty row and likely cause</text>
+<path d="M 290.0 386 L 290.0 408" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="496" width="520" height="62" rx="10" fill="#e6f6ec" stroke="#17663a" stroke-width="1.6"/><text x="46" y="522" font-size="17" font-weight="700" fill="#17663a">6. Analyse the account</text><text x="46" y="543" font-size="13.5" fill="#1f2933">Categories, unusual patterns, monthly flow</text>
+<path d="M 290.0 472 L 290.0 494" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="582" width="520" height="62" rx="10" fill="#e6f6ec" stroke="#17663a" stroke-width="1.6"/><text x="46" y="608" font-size="17" font-weight="700" fill="#17663a">7. Run the checklist</text><text x="46" y="629" font-size="13.5" fill="#1f2933">Earlier submissions, then sections A to E: OK / DISCREPANCY / NA</text>
+<path d="M 290.0 558 L 290.0 580" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="668" width="520" height="62" rx="10" fill="#f2eaff" stroke="#5b2e91" stroke-width="1.6"/><text x="46" y="694" font-size="17" font-weight="700" fill="#5b2e91">8. AI review (optional, advisory)</text><text x="46" y="715" font-size="13.5" fill="#1f2933">Haiku first. Sonnet or Opus only when needed</text>
+<path d="M 290.0 644 L 290.0 666" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="754" width="520" height="62" rx="10" fill="#e6f6ec" stroke="#17663a" stroke-width="1.6"/><text x="46" y="780" font-size="17" font-weight="700" fill="#17663a">9. Assemble the response</text><text x="46" y="801" font-size="13.5" fill="#1f2933">Verdict, faults, reconciliation, analysis</text>
+<path d="M 290.0 730 L 290.0 752" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="840" width="520" height="62" rx="10" fill="#fff3dd" stroke="#8a5300" stroke-width="1.6"/><text x="46" y="866" font-size="17" font-weight="700" fill="#8a5300">10. Save the audit log</text><text x="46" y="887" font-size="13.5" fill="#1f2933">Request, result, response time, tokens, cost, errors</text>
+<path d="M 290.0 816 L 290.0 838" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="30" y="926" width="520" height="62" rx="10" fill="#e8f1ff" stroke="#2457a7" stroke-width="1.6"/><text x="46" y="952" font-size="17" font-weight="700" fill="#2457a7">11. Send the JSON response</text><text x="46" y="973" font-size="13.5" fill="#1f2933">Sent only after the record is saved</text>
+<path d="M 290.0 902 L 290.0 924" fill="none" stroke="#5f6b7a" stroke-width="1.8" marker-end="url(#grey)"/>
+<rect x="640" y="410" width="230" height="62" rx="10" fill="#fdecea" stroke="#a1261b" stroke-width="1.6"/><text x="656" y="436" font-size="17" font-weight="700" fill="#a1261b">Error response</text><text x="656" y="457" font-size="13.5" fill="#1f2933">HTTP 400 413 415 422 500</text>
+<path d="M 550 183.0 L 598 183.0" fill="none" stroke="#a1261b" stroke-width="1.6" stroke-dasharray="6 5"/>
+<text x="602" y="176.0" font-size="12.5" fill="#a1261b">invalid request</text>
+<path d="M 550 269.0 L 598 269.0" fill="none" stroke="#a1261b" stroke-width="1.6" stroke-dasharray="6 5"/>
+<text x="602" y="262.0" font-size="12.5" fill="#a1261b">unreadable file / no text</text>
+<path d="M 550 355.0 L 598 355.0" fill="none" stroke="#a1261b" stroke-width="1.6" stroke-dasharray="6 5"/>
+<text x="602" y="348.0" font-size="12.5" fill="#a1261b">cannot be parsed</text>
+<path d="M 598 183.0 L 598 428 L 638 428" fill="none" stroke="#a1261b" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#red)"/>
+<path d="M 550 613.0 L 610 613.0 L 610 454 L 638 454" fill="none" stroke="#a1261b" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#red)"/>
+<text x="622" y="631.0" font-size="12.5" fill="#a1261b">a processing step crashes (500)</text>
+<path d="M 755.0 472 L 755.0 858 L 552 858" fill="none" stroke="#a1261b" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#red)"/>
+<text x="620" y="850" font-size="12.5" fill="#a1261b">errors are logged too</text>
+<rect x="640" y="926" width="230" height="62" rx="10" fill="#fdecea" stroke="#a1261b" stroke-width="1.6"/><text x="656" y="952" font-size="17" font-weight="700" fill="#a1261b">Audit unavailable</text><text x="656" y="973" font-size="13.5" fill="#1f2933">HTTP 500, no result returned</text>
+<path d="M 550 886 L 600 886 L 600 957 L 638 957" fill="none" stroke="#a1261b" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#red)"/>
+<text x="558" y="950" font-size="12.5" fill="#a1261b">save fails</text>
+</svg>

@@ -1,0 +1,4 @@
+Local n8n only
+URL: http://localhost:5678
+Email: admin@localhost.local
+Password: Bsv-3e05a7d8cfda144a-A1

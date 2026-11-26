@@ -1,0 +1,1761 @@
+{
+  "info": {
+    "name": "Bank Statement Verifier",
+    "description": "Author: Hasan Gaffar\n\nRequests and assertions for the Bank Statement Verification API. All sample statements are synthetic. File paths are relative to the project root, for example:\n\nnewman run postman/Bank-Statement-Verifier.postman_collection.json --working-dir . --folder \"Verification\" --folder \"Error handling\"\n\nIn the Postman app, set the working directory to the project root or re-select each file. The \"AI review\" folder needs an Anthropic credential in n8n and sends sample data to Anthropic. Its assertions check routing only, so they do not prove that the models answered; check aiReview.status.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5678",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "01 Correct CSV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is VERIFIED', () => pm.expect(body.result.verdict).to.equal('VERIFIED'));",
+                  "pm.test('accountsCorrect is true', () => pm.expect(body.result.accountsCorrect).to.equal(true));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/01-correct.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 Altered amount (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 1', () => {",
+                  "  pm.expect(body.faultCount).to.equal(1);",
+                  "  pm.expect(body.faults).to.have.lengthOf(1);",
+                  "});",
+                  "pm.test('Fault cause is WRONG_AMOUNT_OR_MISSING_ENTRY', () => pm.expect(body.faults.map((f) => f.cause)).to.include('WRONG_AMOUNT_OR_MISSING_ENTRY'));",
+                  "pm.test('Fault is located at row 52', () => pm.expect(body.faults[0].row).to.equal(52));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/02-altered-amount.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 Altered balance (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 1', () => {",
+                  "  pm.expect(body.faultCount).to.equal(1);",
+                  "  pm.expect(body.faults).to.have.lengthOf(1);",
+                  "});",
+                  "pm.test('Fault cause is WRONG_BALANCE_FIGURE', () => pm.expect(body.faults.map((f) => f.cause)).to.include('WRONG_BALANCE_FIGURE'));",
+                  "pm.test('Fault is located at row 48', () => pm.expect(body.faults[0].row).to.equal(48));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/03-altered-balance.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 Missing entry (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 1', () => {",
+                  "  pm.expect(body.faultCount).to.equal(1);",
+                  "  pm.expect(body.faults).to.have.lengthOf(1);",
+                  "});",
+                  "pm.test('Fault cause is WRONG_AMOUNT_OR_MISSING_ENTRY', () => pm.expect(body.faults.map((f) => f.cause)).to.include('WRONG_AMOUNT_OR_MISSING_ENTRY'));",
+                  "pm.test('Fault is located at row 71', () => pm.expect(body.faults[0].row).to.equal(71));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/04-missing-entry.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 Swapped debit and credit (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 1', () => {",
+                  "  pm.expect(body.faultCount).to.equal(1);",
+                  "  pm.expect(body.faults).to.have.lengthOf(1);",
+                  "});",
+                  "pm.test('Fault cause is DEBIT_CREDIT_SWAPPED', () => pm.expect(body.faults.map((f) => f.cause)).to.include('DEBIT_CREDIT_SWAPPED'));",
+                  "pm.test('Fault is located at row 60', () => pm.expect(body.faults[0].row).to.equal(60));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/05-swapped-debit-credit.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 Duplicated line (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 1', () => {",
+                  "  pm.expect(body.faultCount).to.equal(1);",
+                  "  pm.expect(body.faults).to.have.lengthOf(1);",
+                  "});",
+                  "pm.test('Fault cause is DUPLICATED_LINE', () => pm.expect(body.faults.map((f) => f.cause)).to.include('DUPLICATED_LINE'));",
+                  "pm.test('Fault is located at row 64', () => pm.expect(body.faults[0].row).to.equal(64));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/06-duplicated-line.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07 Wrong printed totals (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/07-wrong-printed-totals.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08 Suspicious pattern (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is REVIEW_REQUIRED', () => pm.expect(body.result.verdict).to.equal('REVIEW_REQUIRED'));",
+                  "pm.test('accountsCorrect is true', () => pm.expect(body.result.accountsCorrect).to.equal(true));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/08-suspicious-pattern.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09 Correct XLSX",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is VERIFIED', () => pm.expect(body.result.verdict).to.equal('VERIFIED'));",
+                  "pm.test('accountsCorrect is true', () => pm.expect(body.result.accountsCorrect).to.equal(true));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/09-correct.xlsx",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10 Correct PDF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is VERIFIED', () => pm.expect(body.result.verdict).to.equal('VERIFIED'));",
+                  "pm.test('accountsCorrect is true', () => pm.expect(body.result.accountsCorrect).to.equal(true));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/10-correct.pdf",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11 Altered amount (PDF)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/11-altered-amount.pdf",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "12 Correct wallet export (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is VERIFIED', () => pm.expect(body.result.verdict).to.equal('VERIFIED'));",
+                  "pm.test('accountsCorrect is true', () => pm.expect(body.result.accountsCorrect).to.equal(true));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/12-wallet-correct.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "16 Amounts-first layout (PDF)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is VERIFIED', () => pm.expect(body.result.verdict).to.equal('VERIFIED'));",
+                  "pm.test('accountsCorrect is true', () => pm.expect(body.result.accountsCorrect).to.equal(true));",
+                  "pm.test('faultCount is 0', () => {",
+                  "  pm.expect(body.faultCount).to.equal(0);",
+                  "  pm.expect(body.faults).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/16-amounts-first-layout.pdf",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "17 Multiple faults (CSV)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response has the success shape', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.result).to.have.property('accountsCorrect');",
+                  "  pm.expect(body.faultCount).to.be.a('number');",
+                  "  pm.expect(body.faults).to.be.an('array');",
+                  "  body.faults.forEach((fault) => {",
+                  "    pm.expect(fault.cause).to.be.a('string');",
+                  "    pm.expect(fault.row).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "pm.test('Request is recorded in the audit log', () => {",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('Verdict is FAULTS_FOUND', () => pm.expect(body.result.verdict).to.equal('FAULTS_FOUND'));",
+                  "pm.test('accountsCorrect is false', () => pm.expect(body.result.accountsCorrect).to.equal(false));",
+                  "pm.test('faultCount is 3', () => {",
+                  "  pm.expect(body.faultCount).to.equal(3);",
+                  "  pm.expect(body.faults).to.have.lengthOf(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/17-multiple-faults.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error handling",
+      "item": [
+        {
+          "name": "13 Missing columns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 422', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error code is MISSING_COLUMNS', () => {",
+                  "  pm.expect(body.success).to.equal(false);",
+                  "  pm.expect(body.error.code).to.equal('MISSING_COLUMNS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/13-missing-columns.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "14 Scanned image PDF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 422', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error code is OCR_REQUIRED', () => {",
+                  "  pm.expect(body.success).to.equal(false);",
+                  "  pm.expect(body.error.code).to.equal('OCR_REQUIRED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/14-scanned-image.pdf",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "15 Unsupported file type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 415', () => pm.response.to.have.status(415));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error code is UNSUPPORTED_FILE_TYPE', () => {",
+                  "  pm.expect(body.success).to.equal(false);",
+                  "  pm.expect(body.error.code).to.equal('UNSUPPORTED_FILE_TYPE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/15-unsupported.txt",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "No file",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 400', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('Error code is MISSING_FILE', () => {",
+                  "  pm.expect(body.success).to.equal(false);",
+                  "  pm.expect(body.error.code).to.equal('MISSING_FILE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "false",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI review (needs Anthropic credential)",
+      "item": [
+        {
+          "name": "AI 01 Correct CSV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response is successful and audited', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('AI review was requested and routed', () => {",
+                  "  pm.expect(body.aiReview.requested).to.equal(true);",
+                  "  pm.expect(body.aiReview.routing.tier).to.be.oneOf(['HAIKU_ONLY','ESCALATED_SONNET','ESCALATED_OPUS']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/01-correct.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "true",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "AI 02 Altered amount",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response is successful and audited', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('AI review was requested and routed', () => {",
+                  "  pm.expect(body.aiReview.requested).to.equal(true);",
+                  "  pm.expect(body.aiReview.routing.tier).to.be.oneOf(['HAIKU_ONLY','ESCALATED_SONNET','ESCALATED_OPUS']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/02-altered-amount.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "true",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "AI 17 Multiple faults",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Response is successful and audited', () => {",
+                  "  pm.expect(body.success).to.equal(true);",
+                  "  pm.expect(body.result.verdict).to.be.oneOf(['VERIFIED','REVIEW_REQUIRED','FAULTS_FOUND','INCONCLUSIVE']);",
+                  "  pm.expect(body.audit.rowId).to.exist;",
+                  "});",
+                  "pm.test('AI review was requested and routed', () => {",
+                  "  pm.expect(body.aiReview.requested).to.equal(true);",
+                  "  pm.expect(body.aiReview.routing.tier).to.be.oneOf(['HAIKU_ONLY','ESCALATED_SONNET','ESCALATED_OPUS']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "statement",
+                  "type": "file",
+                  "src": "sample-data/17-multiple-faults.csv",
+                  "description": "Required. CSV, XLSX or text-based PDF, up to 5 MB."
+                },
+                {
+                  "key": "account_holder",
+                  "type": "text",
+                  "value": "Padma Traders",
+                  "disabled": true,
+                  "description": "Optional. The same file sent for a different account holder is reported as a fault (check E003)."
+                },
+                {
+                  "key": "reference",
+                  "type": "text",
+                  "value": "POSTMAN-001",
+                  "disabled": true,
+                  "description": "Optional. Your own reference; generated when omitted."
+                },
+                {
+                  "key": "as_of_date",
+                  "type": "text",
+                  "value": "2026-11-26",
+                  "description": "Verification date. Fixed so that results are repeatable."
+                },
+                {
+                  "key": "ai_review",
+                  "type": "text",
+                  "value": "true",
+                  "description": "Optional. \"true\" requests the advisory AI review."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/verify-statement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "verify-statement"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

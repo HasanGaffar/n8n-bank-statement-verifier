@@ -1,0 +1,22 @@
+{
+  "02-altered-amount.csv": {
+    "row": 52,
+    "size": 50000
+  },
+  "03-altered-balance.csv": {
+    "row": 48,
+    "size": 100000
+  },
+  "04-missing-entry.csv": {
+    "row": 71,
+    "size": 54898.83
+  },
+  "05-swapped-debit-credit.csv": {
+    "row": 60,
+    "size": 56000
+  },
+  "06-duplicated-line.csv": {
+    "row": 64,
+    "size": null
+  }
+}
